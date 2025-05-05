@@ -22,31 +22,6 @@ CSV_FILE = "yom_tov_dates.csv"
 # Time zone for triggers (adjust as needed)
 TIME_ZONE = "America/New_York"
 
-# Fetch existing rules to avoid duplicates
-# def get_existing_rules():
-#     headers = {"Authorization": f"Bearer {TOKEN}"}
-#     try:
-#         response = requests.get(API_URL, headers=headers)
-#         print(f"Status Code: {response.status_code}")
-#         print(f"Response Content: {response.text}")
-        
-#         if response.status_code == 200:
-#             try:
-#                 rules = response.json()
-#                 if isinstance(rules, list):
-#                     return {rule['name']: rule['id'] for rule in rules}
-#                 else:
-#                     print("Warning: Response is not a list. Received:", rules)
-#                     return {}
-#             except ValueError:
-#                 print("Warning: Response is not valid JSON. Content:", response.text)
-#                 return {}
-#         else:
-#             print(f"Warning: Could not fetch existing rules: {response.status_code} - {response.text}")
-#             return {}
-#     except requests.exceptions.RequestException as e:
-#         print(f"Warning: Error fetching existing rules: {e}")
-#         return {}
 def get_existing_rules():
     """
     Fetches existing rules from the API and returns them as a dictionary.
