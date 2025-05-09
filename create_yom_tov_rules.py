@@ -4,13 +4,14 @@ import time
 import os
 import sys
 
-# Get token, device ID, and location ID from environment variables
+# Get token, device ID, location ID, and virtual switch ID from environment variables
 TOKEN = os.environ.get('SMARTTHINGS_TOKEN')
 DEVICE_ID = os.environ.get('DEVICE_ID')
 LOCATION_ID = os.environ.get('LOCATION_ID')
+VIRTUAL_SWITCH_ID = os.environ.get('VIRTUAL_SWITCH_ID')
 
-if not all([TOKEN, DEVICE_ID, LOCATION_ID]):
-    print("Error: Please set SMARTTHINGS_TOKEN, DEVICE_ID, and LOCATION_ID environment variables.")
+if not all([TOKEN, DEVICE_ID, LOCATION_ID, VIRTUAL_SWITCH_ID]):
+    print("Error: Please set SMARTTHINGS_TOKEN, DEVICE_ID, LOCATION_ID, and VIRTUAL_SWITCH_ID environment variables.")
     sys.exit(1)
 
 # API URL with locationId query parameter
@@ -49,11 +50,10 @@ def get_existing_rules():
         else:
             print(f"Warning: Could not fetch existing rules: {response.status_code} - {response.text}")
             return {}
-    except requests.exceptions.RequestTypeException as e:
+    except requests.exceptions.RequestException as e:
         print(f"Warning: Error fetching existing rules: {e}")
         return {}
 
-# Function to create a rule for a given name and date
 def create_rule(name, date_str):
     if name in existing_rules:
         print(f"Rule '{name}' already exists with ID: {existing_rules[name]}. Skipping.")
@@ -64,25 +64,46 @@ def create_rule(name, date_str):
         print(f"Error: Invalid date format for '{name}': {date_str}. Expected YYYY-MM-DD.")
         return
 
-    # Construct the rule JSON with if condition for one-time trigger
+    # Construct the rule JSON with conditions for virtual switch and date
     rule = {
         "name": name,
         "timeZoneId": TIME_ZONE,
         "actions": [
             {
                 "if": {
-                    "equals": {
-                        "left": {"datetime": {"timeZoneId": TIME_ZONE, "reference": "Now"}},
-                        "right": {
-                            "datetime": {
-                                "reference": "Sunset",
-                                "year": year_int,
-                                "month": month_int,
-                                "day": day_int,
-                                "offset": {"value": {"integer": -18}, "unit": "Minute"}
+                    "and": [
+                        {
+                            "equals": {
+                                "left": {
+                                    "device": {
+                                        "devices": [VIRTUAL_SWITCH_ID],
+                                        "component": "main",
+                                        "capability": "switch",
+                                        "attribute": "switch"
+                                    }
+                                },
+                                "right": {"string": "on"}
+                            }
+                        },
+                        {
+                            "equals": {
+                                "left": {
+                                    "date": {
+                                        "timeZoneId": TIME_ZONE,
+                                        "reference": "Today"
+                                    }
+                                },
+                                "right": {
+                                    "date": {
+                                        "timeZoneId": TIME_ZONE,
+                                        "year": year_int,
+                                        "month": month_int,
+                                        "day": day_int,
+                                    }
+                                }
                             }
                         }
-                    },
+                    ],
                     "then": [
                         {
                             "command": {
@@ -91,7 +112,8 @@ def create_rule(name, date_str):
                                     {
                                         "component": "main",
                                         "capability": "samsungce.sabbathMode",
-                                        "command": "on"
+                                        "command": "on",
+                                        "arguments": []
                                     }
                                 ]
                             }
@@ -143,7 +165,6 @@ try:
             if not first_days_date:
                 print(f"Skipping {yom_tov} ({year}) First Days: No start date provided.")
             else:
-                # If last day exists, append "First Days", otherwise just use Yom Tov name
                 name = f"{yom_tov} First Days ({year})" if last_day_date else f"{yom_tov} ({year})"
                 create_rule(name, first_days_date)
 

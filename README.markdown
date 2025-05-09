@@ -1,17 +1,18 @@
 # README.md for `create_yom_tov_rules.py`
 
-This Python script automates the creation of SmartThings rules to enable Shabbos mode on a Samsung refrigerator for Yom Tov dates over the next 10 years. It reads a CSV file with Yom Tov dates and generates rules to activate Shabbos mode 18 minutes before sunset.
+This Python script automates the creation of SmartThings rules to enable Shabbos mode on a Samsung refrigerator for Yom Tov dates over the next 10 years. It reads a CSV file with Yom Tov dates and generates rules that activate Shabbos mode 18 minutes before sunset, provided a virtual switch is in the "on" state.
 
 ---
 
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
-2. [How to Use the Script](#how-to-use-the-script)
-3. [CSV File Format](#csv-file-format)
-4. [Environment Variables](#environment-variables)
-5. [Troubleshooting](#troubleshooting)
-6. [Additional Notes](#additional-notes)
+2. [Initial Setup](#initial-setup)
+3. [How to Use the Script](#how-to-use-the-script)
+4. [CSV File Format](#csv-file-format)
+5. [Environment Variables](#environment-variables)
+6. [Troubleshooting](#troubleshooting)
+7. [Additional Notes](#additional-notes)
 
 ---
 
@@ -25,15 +26,18 @@ Before using the script, ensure you have:
 
   - `Rules: Write`
   - `Devices: Read`
-  - `Locations: Read`  
+  - `Locations: Read`
     Create your PAT here: [SmartThings Personal Access Token](https://account.smartthings.com/tokens)
 
 - **Device ID**: The ID of your Samsung refrigerator in SmartThings.  
   Find it here: [SmartThings Devices](https://my.smartthings.com/advanced/devices)
 - **Location ID**: The ID of your SmartThings location.  
   Find it here: [SmartThings Locations](https://my.smartthings.com/advanced/locations)
+- **Virtual Switch ID**: The ID of a virtual switch device in SmartThings (see [Initial Setup](#initial-setup)).
 
 ---
+
+## Initial Setup
 
 ### Setting Up a Virtual Environment
 
@@ -68,6 +72,42 @@ To isolate your project's dependencies and ensure reproducibility, it's recommen
      pip install requests
      ```
 
+### Creating a Virtual Switch
+
+The script requires a virtual switch to be in the "on" state to trigger Shabbos mode. Follow these steps to create a virtual switch:
+
+1. Go to [SmartThings Advanced Devices](https://my.smartthings.com/advanced/devices).
+2. Click **Add Device** or the **+** icon.
+3. Select **Switch** as the device type.
+4. Enter a name (e.g., "Yom Tov Switch").
+5. Select your location _USE THE SAME LOCATION AS YOUR SHABBOS MODE DEVICE_.
+6. Click **Create**.
+7. Note the **Device ID** from the device details page for use in the script.
+
+### Setting Up Daily Routines for the Virtual Switch
+
+Create two routines in the SmartThings app to control the virtual switch:
+
+1. **Turn On 18 Minutes Before Sunset**:
+   - Open the SmartThings app.
+   - Go to **Routines** > **+**.
+   - **If**:
+     - Condition: **Time** > **Sunset** > **18 minutes** > **Before**.
+   - **Then**:
+     - Control Devices: Select the virtual switch ("Yom Tov Switch").
+     - Set: **Turn On**.
+   - Save and name the routine (e.g., "Yom Tov Switch On").
+2. **Turn Off at Sunset**:
+   - Create another automation.
+   - **If**:
+     - Condition: **Time** > **Sunset**.
+   - **Then**:
+     - Control Devices: Select the virtual switch ("Yom Tov Switch").
+     - Set: **Turn Off**.
+   - Save and name the routine (e.g., "Yom Tov Switch Off").
+
+---
+
 ## How to Use the Script
 
 Follow these steps to set up and run the script:
@@ -85,12 +125,14 @@ Follow these steps to set up and run the script:
      export SMARTTHINGS_TOKEN="your_token_here"
      export DEVICE_ID="your_device_id_here"
      export LOCATION_ID="your_location_id_here"
+     export VIRTUAL_SWITCH_ID="your_virtual_switch_id_here"
      ```
    - Example for Windows:
      ```cmd
      set SMARTTHINGS_TOKEN=your_token_here
      set DEVICE_ID=your_device_id_here
      set LOCATION_ID=your_location_id_here
+     set VIRTUAL_SWITCH_ID=your_virtual_switch_id_here
      ```
 
 3. **Run the Script**:
@@ -133,6 +175,7 @@ You must set these variables:
 - `SMARTTHINGS_TOKEN`: Your SmartThings PAT.
 - `DEVICE_ID`: Your refrigerator’s SmartThings device ID.
 - `LOCATION_ID`: Your SmartThings location ID.
+- `VIRTUAL_SWITCH_ID`: Your virtual switch’s device ID.
 
 Set them in your terminal as shown in the [How to Use the Script](#how-to-use-the-script) section.
 
@@ -144,16 +187,18 @@ Set them in your terminal as shown in the [How to Use the Script](#how-to-use-th
 - **Date Format Errors**: Use `YYYY-MM-DD` (e.g., `2025-04-12`).
 - **API Issues**:
   - **401 Unauthorized**: Verify your token and its scopes.
-  - **403 Forbidden**: Double-check you included the locationId in the query string and the deviceId in the body within the request device array.
-  - **404 Not Found**: Double-check device and location IDs.
-  - **429 Too Many Requests**: The script has a 1-second delay; increase it if needed.
-- **No Output**: Ensure environment variables are set correctly.
+  - **403 Forbidden**: Check locationId in the query string and deviceId/virtualSwitchId in the request body.
+  - **404 Not Found**: Verify device, virtual switch, and location IDs.
+  - **429 Too Many Requests**: Increase the delay in the script if needed.
+- **Virtual Switch Not Triggering**: Ensure the switch is "on" at the trigger time and routines are set correctly.
+- **No Output**: Verify all environment variables are set.
 
 ---
 
 ## Additional Notes
 
 - **Shabbos Mode Off**: This script only turns Shabbos mode **on**. Create a separate script for turning it **off**.
+- **Virtual Switch Dependency**: Rules only trigger if the virtual switch is "on" 18 minutes before sunset.
 - **Testing**: Start with a small CSV to test the setup.
 - **Time Zone**: Adjust the `TIME_ZONE` variable in the script if it doesn’t match your location.
 - **SmartThings Advanced Page**: View and manage your devices, locations, rules, and more at [SmartThings Advanced](https://my.smartthings.com/advanced).
